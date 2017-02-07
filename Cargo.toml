@@ -1,0 +1,18 @@
+[package]
+name = "toa-ping"
+version = "0.0.1"
+authors = ["Douman <douman@gmx.se>"]
+description = "Ping tool for different protocols."
+
+homepage = "https://github.com/DoumanAsh/toa-ping"
+repository = "https://github.com/DoumanAsh/toa-ping"
+
+readme = "README.md"
+keywords = ["ping"]
+license = "MIT"
+
+[dependencies]
+lazy-socket = "^0.1"
+
+[profile.release]
+lto = true

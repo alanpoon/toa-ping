@@ -1,8 +1,12 @@
 [package]
 name = "toa-ping"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Douman <douman@gmx.se>"]
-description = "Ping tool for different protocols."
+description = """Utility to perform pings.
+
+Supported protocols:
+* TCP
+"""
 
 homepage = "https://github.com/DoumanAsh/toa-ping"
 repository = "https://github.com/DoumanAsh/toa-ping"

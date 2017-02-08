@@ -8,7 +8,7 @@ matrix:
   include:
     - os: osx
       rust: stable
-      env: TARGET=TARGET=x86_64-apple-darwin
+      env: TARGET=x86_64-apple-darwin
       cache: cargo
     - os: linux
       rust: stable

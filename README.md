@@ -4,6 +4,7 @@
 [![Build Status](https://travis-ci.org/DoumanAsh/toa-ping.svg?branch=master)](https://travis-ci.org/DoumanAsh/toa-ping)
 
 Utility to perform pings.
+
 Supported protocols:
 * TCP
 
@@ -17,6 +18,8 @@ usage: toa-ping [flags] [options] <destination>
 
 Performs ping toward destination.
 
+Destination format: <host>:<port>
+
 Flags:
   -h, --help    - Prints this message.
   -f, --forever - Keep going forever.
@@ -24,5 +27,5 @@ Flags:
 Options:
   -n <number>   - Number of pings to send. Default is 4.
   -i <interval> - Time interval between pings in milliseconds. Default is 500.
-  -w <timeout>  - Timeout to wait for each response in milliseconds. Default 1000ms.
+  -w <timeout>  - Time to wait for each response in milliseconds. Default is 1000.
 ```

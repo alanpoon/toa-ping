@@ -8,14 +8,23 @@ use lazy_socket::raw::{
     select
 };
 
+#[macro_use]
+extern crate lazy_static;
+
 use std::time;
 use std::thread;
 use std::net;
 use std::process::exit;
 use std::os::raw::*;
+use std::sync::RwLock;
 
 mod cli;
 mod stats;
+mod crtl_c;
+
+lazy_static! {
+    pub static ref STATS: RwLock<stats::Stats> = RwLock::new(stats::Stats::new());
+}
 
 ///Performs TCP connection and returns tuple (is_success, duration)
 fn tcp_ping(family: c_int, dest: &net::SocketAddr, timeout: u64) -> Result<(bool, time::Duration), String> {
@@ -46,13 +55,13 @@ fn run() -> Result<i32, String> {
         return Ok(0);
     }
 
-    let mut stats = stats::Stats::new();
     let interval = time::Duration::from_millis(args.options.interval);
     let family: c_int = match args.destination {
         net::SocketAddr::V4(_) => Family::IPV4,
         net::SocketAddr::V6(_) => Family::IPV6
     };
 
+    crtl_c::set_handler();
     let mut idx = 0 as usize;
     println!("Pinging {}/{}", args.destination.ip(), args.destination.port());
     loop {
@@ -76,12 +85,13 @@ fn run() -> Result<i32, String> {
                  reply,
                  elapsed_ms);
 
-        stats.add_ping(ok, elapsed_ms);
+        STATS.write().unwrap().add_ping(ok, elapsed_ms);
         idx += 1;
         thread::sleep(interval);
     }
 
-    println!("{}", stats);
+    let stats = STATS.read().unwrap();
+    println!("{}", *stats);
     Ok(!stats.is_ok() as i32)
 }
 

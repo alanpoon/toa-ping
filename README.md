@@ -1,5 +1,7 @@
 # toa-ping
 
+[![Build Status](https://travis-ci.org/DoumanAsh/toa-ping.svg?branch=master)](https://travis-ci.org/DoumanAsh/toa-ping)
+
 Utility to perform pings.
 Supported protocols:
 * TCP

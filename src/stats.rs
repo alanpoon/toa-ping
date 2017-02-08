@@ -42,7 +42,7 @@ impl Stats {
     }
 
     ///Returns whether all pings are successful.
-    pub fn is_ok(self) -> bool {
+    pub fn is_ok(&self) -> bool {
         self.num == self.num_success
     }
 }

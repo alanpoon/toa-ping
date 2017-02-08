@@ -13,6 +13,10 @@ license = "MIT"
 
 [dependencies]
 lazy-socket = "^0.1"
+lazy_static = "^0.2"
+
+[target."cfg(unix)".dependencies]
+libc = "^0.2.20"
 
 [profile.release]
 lto = true

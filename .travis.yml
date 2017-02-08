@@ -1,12 +1,39 @@
 language: rust
-rust:
-  - stable
 
-os:
-  - linux
-  - osx
+env:
+  global:
+    - PROJECT_NAME=toa-ping
+
+matrix:
+  include:
+    - os: osx
+      rust: stable
+      env: TARGET=TARGET=x86_64-apple-darwin
+      cache: cargo
+    - os: linux
+      rust: stable
+      env: TARGET=x86_64-unknown-linux-gnu
+      cache: cargo
 
 sudo: false
 
 script:
-  - cargo build
+  - cargo build --target $TARGET
+
+before_deploy:
+  - cargo build --release --target $TARGET
+  - zip "$PROJECT_NAME-$TRAVIS_TAG-$TARGET-debug.zip" -j `grep  -m 1 "^"  target/$TARGET/debug/* -s | grep Binary | awk '{print $3}' | grep -v "rlib"`
+  - zip "$PROJECT_NAME-$TRAVIS_TAG-$TARGET.zip" -j `grep  -m 1 "^"  target/$TARGET/release/* -s | grep Binary | awk '{print $3}' | grep -v "rlib"`
+
+deploy:
+  provider: releases
+  api_key: $GIT_TOKEN
+  file_glob: true
+  file: ${PROJECT_NAME}-${TRAVIS_TAG}-${TARGET}.*
+  # don't delete the artifacts from previous phases
+  skip_cleanup: true
+  # deploy when a new tag is pushed
+  on:
+    # channel to use to produce the release artifacts
+    condition: $TRAVIS_RUST_VERSION = stable
+    tags: true

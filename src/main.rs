@@ -56,10 +56,6 @@ fn run() -> Result<i32, String> {
     }
 
     let interval = time::Duration::from_millis(args.options.interval);
-    let family: c_int = match args.destination {
-        net::SocketAddr::V4(_) => Family::IPV4,
-        net::SocketAddr::V6(_) => Family::IPV6
-    };
 
     crtl_c::set_handler();
     let mut idx = 0 as usize;
@@ -69,7 +65,7 @@ fn run() -> Result<i32, String> {
             break;
         }
 
-        let (ok, elapsed) = match tcp_ping(family, &args.destination, args.options.timeout) {
+        let (ok, elapsed) = match tcp_ping(args.options.ip_family, &args.destination, args.options.timeout) {
             Ok(result) => result,
             Err(error) => return Err(error)
         };

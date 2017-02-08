@@ -3,12 +3,13 @@ use std::fmt;
 use std::net;
 use std::net::ToSocketAddrs;
 use std::str::FromStr;
+use std::os::raw::*;
 
 const USAGE: &'static str = "usage: toa-ping [flags] [options] <destination>
 
 Performs ping toward destination.
 
-Destination format: <host>:<port>
+Destination format: <host>[:<port>]
 
 Flags:
   -h, --help    - Prints this message.
@@ -18,6 +19,8 @@ Options:
   -n <number>   - Number of pings to send. Default is 4.
   -i <interval> - Time interval between pings in milliseconds. Default is 500.
   -w <timeout>  - Time to wait for each response in milliseconds. Default is 1000.
+  -4            - Enforce IPv4 version. Default is determined by destination.
+  -6            - Enforce IPv6 version. Default is determined by destination.
 ";
 
 pub struct ParseError(String);
@@ -43,7 +46,8 @@ pub struct Flags {
 pub struct Options {
     pub number: usize,
     pub interval: u64,
-    pub timeout: u64
+    pub timeout: u64,
+    pub ip_family: c_int
 }
 
 pub struct Parser {
@@ -72,17 +76,19 @@ impl Parser {
         let mut options = Options::default();
         let mut destination: Option<net::SocketAddr> = None;
 
-        let mut args = env::args().skip(1);
-
         options.number = 4;
         options.interval = 500;
         options.timeout = 1000;
+
+        let mut args = env::args().skip(1);
 
         while let Some(arg) = args.next() {
             let arg = arg.as_ref();
             match arg {
                 "-h" | "--help" => flags.help = true,
                 "-f" | "--forever" => flags.forever = true,
+                "-4" => options.ip_family = ::Family::IPV4,
+                "-6" => options.ip_family = ::Family::IPV6,
                 opt @ "-n" => {
                     match parse_next_int(args.next(), opt) {
                         Ok(num) => options.number = num,
@@ -104,9 +110,21 @@ impl Parser {
                 dest @ _ => {
                     let mut addrs = match dest.to_socket_addrs() {
                         Ok(iter) => iter,
-                        Err(_) => return Err(ParseError(format!("Invalid destination {}", dest)))
+                        Err(_) => {
+                            if let Ok(addrs) = (dest, 0).to_socket_addrs() {
+                                addrs
+                            }
+                            else {
+                                return Err(ParseError(format!("Invalid destination {}", dest)))
+                            }
+                        }
                     };
+
                     destination = addrs.next();
+
+                    if destination.is_none() {
+                        return Err(ParseError("Failed to resolve anything from destination :(".to_string()));
+                    }
                 }
             }
         }
@@ -120,10 +138,23 @@ impl Parser {
             }
         }
 
+        let mut destination = destination.unwrap();
+
+        if options.ip_family == 0 {
+            options.ip_family = match destination {
+                net::SocketAddr::V4(_) => ::Family::IPV4,
+                net::SocketAddr::V6(_) => ::Family::IPV6
+            };
+        }
+
+        if destination.port() == 0 {
+            destination.set_port(80);
+        }
+
         Ok(Parser {
             flags: flags,
             options: options,
-            destination: destination.unwrap()
+            destination: destination
         })
     }
 

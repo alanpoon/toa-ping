@@ -2,10 +2,11 @@
 name = "toa-ping"
 version = "0.0.2"
 authors = ["Douman <douman@gmx.se>"]
-description = """Utility to perform pings.
-
-Supported protocols:
-* TCP
+categories = ["command-line-utilities"]
+description = """Utility to perform pings.\n
+\n
+Supported protocols:\n
+* TCP\n
 """
 
 homepage = "https://github.com/DoumanAsh/toa-ping"

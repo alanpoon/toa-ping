@@ -1,5 +1,6 @@
 # toa-ping
 
+[![Build status](https://ci.appveyor.com/api/projects/status/19begg2drvh0630n/branch/master?svg=true)](https://ci.appveyor.com/project/DoumanAsh/toa-ping/branch/master)
 [![Build Status](https://travis-ci.org/DoumanAsh/toa-ping.svg?branch=master)](https://travis-ci.org/DoumanAsh/toa-ping)
 
 Utility to perform pings.

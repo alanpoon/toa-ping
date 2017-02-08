@@ -1,47 +1,20 @@
 extern crate lazy_socket;
 
-use lazy_socket::raw::Socket as RawSocket;
-use lazy_socket::raw::{
-    Protocol,
-    Family,
-    Type,
-    select
-};
-
 #[macro_use]
 extern crate lazy_static;
 
 use std::time;
 use std::thread;
-use std::net;
 use std::process::exit;
-use std::os::raw::*;
 use std::sync::RwLock;
 
 mod cli;
 mod stats;
 mod crtl_c;
+mod ping;
 
 lazy_static! {
     pub static ref STATS: RwLock<stats::Stats> = RwLock::new(stats::Stats::new());
-}
-
-///Performs TCP connection and returns tuple (is_success, duration)
-fn tcp_ping(family: c_int, dest: &net::SocketAddr, timeout: u64) -> Result<(bool, time::Duration), String> {
-    let ty = Type::STREAM;
-    let proto = Protocol::TCP;
-    let socket = match RawSocket::new(family, ty, proto) {
-        Ok(socket) => socket,
-        Err(error) => return Err(format!("{}", error))
-    };
-    let _ = socket.set_nonblocking(true);
-
-    let now = time::Instant::now();
-    let _ = socket.connect(dest);
-    match select(&[], &[&socket], &[&socket], Some(timeout)) {
-        Ok(num) => Ok((num != 0, now.elapsed())),
-        Err(error) => Err(format!("{}", error))
-    }
 }
 
 fn run() -> Result<i32, String> {
@@ -65,7 +38,7 @@ fn run() -> Result<i32, String> {
             break;
         }
 
-        let (ok, elapsed) = match tcp_ping(args.options.ip_family, &args.destination, args.options.timeout) {
+        let (ok, elapsed) = match (args.options.ping_fn)(args.options.ip_family, &args.destination, args.options.timeout) {
             Ok(result) => result,
             Err(error) => return Err(error)
         };

@@ -1,3 +1,7 @@
+use ::lazy_socket::raw::{
+    Family
+};
+
 use std::env;
 use std::fmt;
 use std::net;
@@ -16,11 +20,15 @@ Flags:
   -f, --forever - Keep going forever.
 
 Options:
+  -p <protocol> - Specifies protocol to use. Default is tcp.
   -n <number>   - Number of pings to send. Default is 4.
   -i <interval> - Time interval between pings in milliseconds. Default is 500.
   -w <timeout>  - Time to wait for each response in milliseconds. Default is 1000.
   -4            - Enforce IPv4 version. Default is determined by destination.
   -6            - Enforce IPv6 version. Default is determined by destination.
+
+Supported protocols:
+  tcp - Measures RTT of connection establishment.
 ";
 
 pub struct ParseError(String);
@@ -42,12 +50,12 @@ pub struct Flags {
     pub help: bool
 }
 
-#[derive(Default)]
 pub struct Options {
     pub number: usize,
     pub interval: u64,
     pub timeout: u64,
-    pub ip_family: c_int
+    pub ip_family: c_int,
+    pub ping_fn: ::ping::FnType
 }
 
 pub struct Parser {
@@ -73,12 +81,15 @@ fn parse_next_int<T: FromStr>(arg: Option<String>, opt_name: &str) -> Result<T, 
 impl Parser {
     pub fn new() -> Result<Parser, ParseError> {
         let mut flags = Flags::default();
-        let mut options = Options::default();
+        let mut options = Options {
+            number: 4,
+            interval: 500,
+            timeout: 1000,
+            ip_family: 0,
+            ping_fn: ::ping::tcp
+        };
         let mut destination: Option<net::SocketAddr> = None;
-
-        options.number = 4;
-        options.interval = 500;
-        options.timeout = 1000;
+        let mut protocol_fn: Option<::ping::FnType> = None;
 
         let mut args = env::args().skip(1);
 
@@ -87,8 +98,16 @@ impl Parser {
             match arg {
                 "-h" | "--help" => flags.help = true,
                 "-f" | "--forever" => flags.forever = true,
-                "-4" => options.ip_family = ::Family::IPV4,
-                "-6" => options.ip_family = ::Family::IPV6,
+                "-4" => options.ip_family = Family::IPV4,
+                "-6" => options.ip_family = Family::IPV6,
+                "-p" => {
+                    let value = args.next();
+                    match value.as_ref().map(String::as_str) {
+                        Some("tcp") => protocol_fn = Some(::ping::tcp),
+                        arg @ Some(_) => return Err(ParseError(format!("Invalid protocol {}", arg.unwrap()))),
+                        _ => return Err(ParseError("Protocol hasn't been supplied".to_string()))
+                    }
+                },
                 opt @ "-n" => {
                     match parse_next_int(args.next(), opt) {
                         Ok(num) => options.number = num,
@@ -142,14 +161,16 @@ impl Parser {
 
         if options.ip_family == 0 {
             options.ip_family = match destination {
-                net::SocketAddr::V4(_) => ::Family::IPV4,
-                net::SocketAddr::V6(_) => ::Family::IPV6
+                net::SocketAddr::V4(_) => Family::IPV4,
+                net::SocketAddr::V6(_) => Family::IPV6
             };
         }
 
         if destination.port() == 0 {
             destination.set_port(80);
         }
+
+        options.ping_fn = protocol_fn.unwrap_or(::ping::tcp);
 
         Ok(Parser {
             flags: flags,

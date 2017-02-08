@@ -24,10 +24,14 @@ Flags:
   -f, --forever - Keep going forever.
 
 Options:
+  -p <protocol> - Specifies protocol to use. Default is tcp.
   -n <number>   - Number of pings to send. Default is 4.
   -i <interval> - Time interval between pings in milliseconds. Default is 500.
   -w <timeout>  - Time to wait for each response in milliseconds. Default is 1000.
   -4            - Enforce IPv4 version. Default is determined by destination.
   -6            - Enforce IPv6 version. Default is determined by destination.
+
+Supported protocols:
+  tcp - Measures RTT of connection establishment.
 
 ```

@@ -24,8 +24,8 @@ Options:
   -n <number>   - Number of pings to send. Default is 4.
   -i <interval> - Time interval between pings in milliseconds. Default is 500.
   -w <timeout>  - Time to wait for each response in milliseconds. Default is 1000.
-  -4            - Enforce IPv4 version. Default is determined by destination.
-  -6            - Enforce IPv6 version. Default is determined by destination.
+  -4            - Enforce IPv4 version. Default is first resolved address.
+  -6            - Enforce IPv6 version. Default is first resolved address.
 
 Supported protocols:
   tcp - Measures RTT of connection establishment.
@@ -39,7 +39,7 @@ impl fmt::Display for ParseError {
             write!(f, "{}", USAGE)
         }
         else {
-            write!(f, "{}\n{}", self.0, USAGE)
+            write!(f, "ERROR:{}\n\n{}", self.0, USAGE)
         }
     }
 }
@@ -89,6 +89,8 @@ impl Parser {
             ping_fn: ::ping::tcp
         };
         let mut destination: Option<net::SocketAddr> = None;
+        let mut destination4: Option<net::SocketAddr> = None;
+        let mut destination6: Option<net::SocketAddr> = None;
         let mut protocol_fn: Option<::ping::FnType> = None;
 
         let mut args = env::args().skip(1);
@@ -127,7 +129,7 @@ impl Parser {
                     }
                 }
                 dest @ _ => {
-                    let mut addrs = match dest.to_socket_addrs() {
+                    let addrs = match dest.to_socket_addrs() {
                         Ok(iter) => iter,
                         Err(_) => {
                             if let Ok(addrs) = (dest, 0).to_socket_addrs() {
@@ -139,7 +141,16 @@ impl Parser {
                         }
                     };
 
-                    destination = addrs.next();
+                    for dest in addrs {
+                        if destination.is_none() {
+                            destination = Some(dest);
+                        }
+
+                        match dest {
+                            net::SocketAddr::V4(_) => if destination4.is_none() { destination4 = Some(dest) },
+                            net::SocketAddr::V6(_) => if destination6.is_none() { destination6 = Some(dest) }
+                        }
+                    }
 
                     if destination.is_none() {
                         return Err(ParseError("Failed to resolve anything from destination :(".to_string()));
@@ -157,14 +168,28 @@ impl Parser {
             }
         }
 
-        let mut destination = destination.unwrap();
-
-        if options.ip_family == 0 {
-            options.ip_family = match destination {
-                net::SocketAddr::V4(_) => Family::IPV4,
-                net::SocketAddr::V6(_) => Family::IPV6
-            };
-        }
+        let mut destination = match options.ip_family {
+            Family::IPV4 => {
+                match destination4 {
+                    Some(dest) => dest,
+                    None => return Err(ParseError("IPv4 address is not found. Cannot ping with this version >.<".to_string()))
+                }
+            },
+            Family::IPV6 => {
+                match destination6 {
+                    Some(dest) => dest,
+                    None => return Err(ParseError("IPv6 address is not found. Cannot ping with this version >.<".to_string()))
+                }
+            },
+            _ => {
+                let destination = destination.unwrap();
+                options.ip_family = match destination {
+                    net::SocketAddr::V4(_) => Family::IPV4,
+                    net::SocketAddr::V6(_) => Family::IPV6
+                };
+                destination
+            }
+        };
 
         if destination.port() == 0 {
             destination.set_port(80);

@@ -1,13 +1,9 @@
 [package]
 name = "toa-ping"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Douman <douman@gmx.se>"]
 categories = ["command-line-utilities"]
-description = """Utility to perform pings.\n
-\n
-Supported protocols:\n
-* TCP\n
-"""
+description = """Utility to perform pings."""
 
 homepage = "https://github.com/DoumanAsh/toa-ping"
 repository = "https://github.com/DoumanAsh/toa-ping"
@@ -17,7 +13,7 @@ keywords = ["ping"]
 license = "MIT"
 
 [dependencies]
-lazy-socket = "^0.1"
+lazy-socket = "^0.2"
 lazy_static = "^0.2"
 
 [target."cfg(unix)".dependencies]

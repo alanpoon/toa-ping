@@ -19,7 +19,7 @@ pub fn tcp(family: c_int, dest: &net::SocketAddr, timeout: u64) -> Result<(bool,
         Ok(socket) => socket,
         Err(error) => return Err(format!("{}", error))
     };
-    let _ = socket.set_nonblocking(true);
+    let _ = socket.set_blocking(false);
 
     let now = time::Instant::now();
     let _ = socket.connect(dest);

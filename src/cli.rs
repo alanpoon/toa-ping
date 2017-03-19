@@ -100,8 +100,8 @@ impl Parser {
             match arg {
                 "-h" | "--help" => flags.help = true,
                 "-f" | "--forever" => flags.forever = true,
-                "-4" => options.ip_family = Family::IPV4,
-                "-6" => options.ip_family = Family::IPV6,
+                "-4" => options.ip_family = Family::IPv4,
+                "-6" => options.ip_family = Family::IPv6,
                 "-p" => {
                     let value = args.next();
                     match value.as_ref().map(String::as_str) {
@@ -169,13 +169,13 @@ impl Parser {
         }
 
         let mut destination = match options.ip_family {
-            Family::IPV4 => {
+            Family::IPv4 => {
                 match destination4 {
                     Some(dest) => dest,
                     None => return Err(ParseError("IPv4 address is not found. Cannot ping with this version >.<".to_string()))
                 }
             },
-            Family::IPV6 => {
+            Family::IPv6 => {
                 match destination6 {
                     Some(dest) => dest,
                     None => return Err(ParseError("IPv6 address is not found. Cannot ping with this version >.<".to_string()))
@@ -184,8 +184,8 @@ impl Parser {
             _ => {
                 let destination = destination.unwrap();
                 options.ip_family = match destination {
-                    net::SocketAddr::V4(_) => Family::IPV4,
-                    net::SocketAddr::V6(_) => Family::IPV6
+                    net::SocketAddr::V4(_) => Family::IPv4,
+                    net::SocketAddr::V6(_) => Family::IPv6
                 };
                 destination
             }

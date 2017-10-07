@@ -4,15 +4,7 @@ mod inner {
     use std::ptr;
 
     extern crate libc;
-    use self::libc::{
-        c_int,
-        sighandler_t,
-        SIGINT,
-        SIGTERM,
-        sigaction,
-        SA_RESETHAND,
-        raise
-    };
+    use self::libc::{c_int, sighandler_t, SIGINT, SIGTERM, sigaction, SA_RESETHAND, raise};
 
     unsafe extern "C" fn handler(signum: c_int) {
         let stats = ::STATS.read().unwrap();
@@ -40,7 +32,7 @@ mod inner {
     type DWORD = c_ulong;
     type BOOL = c_int;
     #[allow(bad_style)]
-    type PHANDLER_ROUTINE = Option<unsafe  extern "system" fn(crtl_type: DWORD) -> BOOL>;
+    type PHANDLER_ROUTINE = Option<unsafe extern "system" fn(crtl_type: DWORD) -> BOOL>;
 
     extern "system" {
         pub fn SetConsoleCtrlHandler(HandlerRoutine: PHANDLER_ROUTINE, Add: BOOL) -> BOOL;

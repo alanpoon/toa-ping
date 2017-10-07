@@ -13,8 +13,8 @@ keywords = ["ping"]
 license = "MIT"
 
 [dependencies]
-lazy-socket = "^0.2"
 lazy_static = "^0.2"
+socket2 = "0.2.3"
 
 [target."cfg(unix)".dependencies]
 libc = "^0.2.20"

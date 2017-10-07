@@ -1,5 +1,4 @@
-extern crate lazy_socket;
-
+extern crate socket2;
 #[macro_use]
 extern crate lazy_static;
 
@@ -11,14 +10,18 @@ use std::net;
 use std::thread;
 use std::time;
 use std::net::ToSocketAddrs;
-
-use lazy_socket::raw::Family;
+use socket2::SockAddr;
 use std::sync::RwLock;
 lazy_static! {
     pub static ref STATS: RwLock<stats::Stats> = RwLock::new(stats::Stats::new());
 }
-
-pub fn run(dest:&'static str) -> Result<i32, String> {
+pub enum Family {
+    IPv4,
+    IPv6,
+    Other,
+    None,
+}
+pub fn run(dest: &'static str) -> Result<i32, String> {
     let mut destination: Option<net::SocketAddr> = None;
     let mut destination4: Option<net::SocketAddr> = None;
     let mut destination6: Option<net::SocketAddr> = None;
@@ -52,9 +55,8 @@ pub fn run(dest:&'static str) -> Result<i32, String> {
             return Err("Failed to resolve anything from destination :(".to_string());
         }
     }
-    let timeout = 1000;
+    let timeout = 3000;
     let mut ip_family = Family::IPv4;
-
     let ping_fn = ping::tcp;
     let interval = time::Duration::from_millis(500);
     let mut idx = 0 as usize;
@@ -83,25 +85,27 @@ pub fn run(dest:&'static str) -> Result<i32, String> {
                 net::SocketAddr::V4(_) => Family::IPv4,
                 net::SocketAddr::V6(_) => Family::IPv6,
             };
+
             destination
         }
     };
-     if destination.port() == 0 {
-            destination.set_port(80);
-        }
+    if destination.port() == 0 {
+        destination.set_port(80);
+    }
+
     loop {
+
         if idx == 4 {
             break;
         }
-
-        let (ok, elapsed) = match (ping_fn)(ip_family, &destination, timeout) {
+        let destination = SockAddr::from(destination);
+        let (ok, elapsed) = match (ping_fn)(&destination, timeout) {
             Ok(result) => result,
             Err(error) => return Err(error),
         };
-        println!("ok {:?}", ok);
         let reply = match ok {
             false => format!("No reply"),
-            true => format!("Reply from {}", destination.ip()),
+            true => format!("Reply from {:?}", destination.as_ptr()),
         };
 
         let elapsed_ms = (elapsed.as_secs() * 1000) as f64 +

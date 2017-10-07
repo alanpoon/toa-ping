@@ -1,13 +1,9 @@
-use ::lazy_socket::raw::{
-    Family
-};
-
+use Family;
 use std::env;
 use std::fmt;
 use std::net;
 use std::net::ToSocketAddrs;
 use std::str::FromStr;
-use std::os::raw::*;
 
 const USAGE: &'static str = "usage: toa-ping [flags] [options] <destination>
 
@@ -37,8 +33,7 @@ impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.0 == "" {
             write!(f, "{}", USAGE)
-        }
-        else {
+        } else {
             write!(f, "ERROR:{}\n\n{}", self.0, USAGE)
         }
     }
@@ -47,33 +42,31 @@ impl fmt::Display for ParseError {
 #[derive(Default)]
 pub struct Flags {
     pub forever: bool,
-    pub help: bool
+    pub help: bool,
 }
 
 pub struct Options {
     pub number: usize,
     pub interval: u64,
     pub timeout: u64,
-    pub ip_family: c_int,
-    pub ping_fn: ::ping::FnType
+    pub ip_family: Family,
+    pub ping_fn: ::ping::FnType,
 }
 
 pub struct Parser {
     pub flags: Flags,
     pub options: Options,
-    pub destination: net::SocketAddr
+    pub destination: net::SocketAddr,
 }
 
 fn parse_next_int<T: FromStr>(arg: Option<String>, opt_name: &str) -> Result<T, ParseError> {
     if let Some(num) = arg {
         if let Ok(num) = num.parse::<T>() {
             Ok(num)
-        }
-        else {
+        } else {
             Err(ParseError(format!("Invalid number {} is supplied for option {}", num, opt_name)))
         }
-    }
-    else {
+    } else {
         Err(ParseError(format!("Missing value for option {}", opt_name)))
     }
 }
@@ -84,9 +77,9 @@ impl Parser {
         let mut options = Options {
             number: 4,
             interval: 500,
-            timeout: 1000,
-            ip_family: 0,
-            ping_fn: ::ping::tcp
+            timeout: 3000,
+            ip_family: Family::None,
+            ping_fn: ::ping::tcp,
         };
         let mut destination: Option<net::SocketAddr> = None;
         let mut destination4: Option<net::SocketAddr> = None;
@@ -106,26 +99,28 @@ impl Parser {
                     let value = args.next();
                     match value.as_ref().map(String::as_str) {
                         Some("tcp") => protocol_fn = Some(::ping::tcp),
-                        arg @ Some(_) => return Err(ParseError(format!("Invalid protocol {}", arg.unwrap()))),
-                        _ => return Err(ParseError("Protocol hasn't been supplied".to_string()))
+                        arg @ Some(_) => {
+                            return Err(ParseError(format!("Invalid protocol {}", arg.unwrap())))
+                        }
+                        _ => return Err(ParseError("Protocol hasn't been supplied".to_string())),
                     }
-                },
+                }
                 opt @ "-n" => {
                     match parse_next_int(args.next(), opt) {
                         Ok(num) => options.number = num,
-                        Err(error) => return Err(error)
+                        Err(error) => return Err(error),
                     }
-                },
+                }
                 opt @ "-i" => {
                     match parse_next_int(args.next(), opt) {
                         Ok(num) => options.interval = num,
-                        Err(error) => return Err(error)
+                        Err(error) => return Err(error),
                     }
-                },
+                }
                 opt @ "-w" => {
                     match parse_next_int(args.next(), opt) {
                         Ok(num) => options.timeout = num,
-                        Err(error) => return Err(error)
+                        Err(error) => return Err(error),
                     }
                 }
                 dest @ _ => {
@@ -134,9 +129,8 @@ impl Parser {
                         Err(_) => {
                             if let Ok(addrs) = (dest, 0).to_socket_addrs() {
                                 addrs
-                            }
-                            else {
-                                return Err(ParseError(format!("Invalid destination {}", dest)))
+                            } else {
+                                return Err(ParseError(format!("Invalid destination {}", dest)));
                             }
                         }
                     };
@@ -147,13 +141,22 @@ impl Parser {
                         }
 
                         match dest {
-                            net::SocketAddr::V4(_) => if destination4.is_none() { destination4 = Some(dest) },
-                            net::SocketAddr::V6(_) => if destination6.is_none() { destination6 = Some(dest) }
+                            net::SocketAddr::V4(_) => {
+                                if destination4.is_none() {
+                                    destination4 = Some(dest)
+                                }
+                            }
+                            net::SocketAddr::V6(_) => {
+                                if destination6.is_none() {
+                                    destination6 = Some(dest)
+                                }
+                            }
                         }
                     }
 
                     if destination.is_none() {
-                        return Err(ParseError("Failed to resolve anything from destination :(".to_string()));
+                        return Err(ParseError("Failed to resolve anything from destination :("
+                                                  .to_string()));
                     }
                 }
             }
@@ -162,8 +165,7 @@ impl Parser {
         if destination.is_none() {
             if flags.help {
                 return Err(ParseError("".to_string()));
-            }
-            else {
+            } else {
                 return Err(ParseError("Destination is not supplied".to_string()));
             }
         }
@@ -172,20 +174,20 @@ impl Parser {
             Family::IPv4 => {
                 match destination4 {
                     Some(dest) => dest,
-                    None => return Err(ParseError("IPv4 address is not found. Cannot ping with this version >.<".to_string()))
+                    None => return Err(ParseError("IPv4 address is not found. Cannot ping with this version >.<".to_string())),
                 }
-            },
+            }
             Family::IPv6 => {
                 match destination6 {
                     Some(dest) => dest,
-                    None => return Err(ParseError("IPv6 address is not found. Cannot ping with this version >.<".to_string()))
+                    None => return Err(ParseError("IPv6 address is not found. Cannot ping with this version >.<".to_string())),
                 }
-            },
+            }
             _ => {
                 let destination = destination.unwrap();
                 options.ip_family = match destination {
                     net::SocketAddr::V4(_) => Family::IPv4,
-                    net::SocketAddr::V6(_) => Family::IPv6
+                    net::SocketAddr::V6(_) => Family::IPv6,
                 };
                 destination
             }
@@ -198,10 +200,10 @@ impl Parser {
         options.ping_fn = protocol_fn.unwrap_or(::ping::tcp);
 
         Ok(Parser {
-            flags: flags,
-            options: options,
-            destination: destination
-        })
+               flags: flags,
+               options: options,
+               destination: destination,
+           })
     }
 
     pub fn usage(&self) -> &'static str {

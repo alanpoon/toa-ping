@@ -1,30 +1,24 @@
-use ::lazy_socket::raw::Socket as RawSocket;
-use ::lazy_socket::raw::{
-    Protocol,
-    Type,
-    select
-};
-
-use std::os::raw::*;
-use std::net;
+use socket2::{Socket, Domain, Type, SockAddr, Protocol};
 use std::time;
-
-pub type FnType = fn(i32, &net::SocketAddr, u64) -> Result<(bool, time::Duration), String>;
+use std::net::SocketAddr;
+pub type FnType = fn(&SockAddr, u64) -> Result<(bool, time::Duration), String>;
 
 ///Performs TCP connection and returns tuple (is_success, duration)
-pub fn tcp(family: c_int, dest: &net::SocketAddr, timeout: u64) -> Result<(bool, time::Duration), String> {
-    let ty = Type::STREAM;
-    let proto = Protocol::TCP;
-    let socket = match RawSocket::new(family, ty, proto) {
-        Ok(socket) => socket,
-        Err(error) => return Err(format!("{}", error))
+pub fn tcp(dest: &SockAddr, timeout: u64) -> Result<(bool, time::Duration), String> {
+    let ty = Type::stream();
+    let proto = Protocol::from(6); //tcp
+    let domain = match dest.as_inet() {
+        Some(_) => {
+            Domain::ipv4()
+        }
+        None => Domain::ipv6(),
     };
-    let _ = socket.set_blocking(false);
-
+    let socket = match Socket::new(domain, ty, None) {
+        Ok(socket) => socket,
+        Err(error) => return Err(format!("socket:new {}", error)),
+    };
     let now = time::Instant::now();
-    let _ = socket.connect(dest);
-    match select(&[], &[&socket], &[&socket], Some(timeout)) {
-        Ok(num) => Ok((num != 0, now.elapsed())),
-        Err(error) => Err(format!("{}", error))
-    }
+    socket.connect(dest).unwrap();
+    socket.set_read_timeout(Some(time::Duration::from_millis(timeout))).unwrap();
+    Ok((true, now.elapsed()))
 }

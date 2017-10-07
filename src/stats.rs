@@ -9,7 +9,7 @@ pub struct Stats {
     num_success: usize,
     min_time: f64,
     max_time: f64,
-    sum_time: f64
+    sum_time: f64,
 }
 
 impl Stats {
@@ -20,7 +20,7 @@ impl Stats {
             num_success: 0,
             min_time: f64::MAX,
             max_time: 0.0,
-            sum_time: 0.0
+            sum_time: 0.0,
         }
     }
 
@@ -32,8 +32,7 @@ impl Stats {
 
             if time < self.min_time {
                 self.min_time = time;
-            }
-            else if time > self.max_time {
+            } else if time > self.max_time {
                 self.max_time = time;
             }
 
@@ -51,25 +50,32 @@ impl fmt::Display for Stats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.num_success > 0 {
             let success_rate = (self.num_success * 100) as f64 / self.num as f64;
-            write!(f, "
+            write!(f,
+                   "
 Summary:
     {} pings sent.
     {} succesful. Success Rate: {:.2}%
 RTT statics:
     min={:.3}ms, average={:.3}ms, max={:.3}ms
                ",
-               self.num, self.num_success, success_rate,
-               self.min_time, self.sum_time / self.num_success as f64, self.max_time)
-        }
-        else {
-            write!(f, "
+                   self.num,
+                   self.num_success,
+                   success_rate,
+                   self.min_time,
+                   self.sum_time / self.num_success as f64,
+                   self.max_time)
+        } else {
+            write!(f,
+                   "
 Summary:
     {} pings sent.
     {} succesful. Rate: {:.2}%
 RTT statics:
     Was unable to collect any statics :(
                ",
-               self.num, self.num_success, 0)
+                   self.num,
+                   self.num_success,
+                   0)
         }
     }
 }
